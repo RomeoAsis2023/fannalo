@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Events — Fannalo</title>
+  <meta name="description" content="Create and discover upcoming events on Fannalo.">
+  <meta property="og:title" content="Events — Fannalo">
+  <meta property="og:description" content="Create and discover upcoming events on the Fannalo P2P network.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://faney.app/pages/events.html">
+  <meta property="og:image" content="https://faney.app/assets/img/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://faney.app/pages/events.html">
+  <meta name="theme-color" content="#f9f9f9">
+  <link rel="icon" type="image/png" href="../assets/img/icon.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <script src="../assets/js/core/preload.js"></script>
+</head>
+<body>
+  <div class="bg-noise"></div>
+
+  <div class="main-content" id="app">
+    <div class="container" style="max-width:720px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+        <h1 style="font-size:22px;font-weight:700;">Events</h1>
+        <button id="createEventBtn" class="btn btn-primary btn-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Create Event
+        </button>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px;">
+        <button id="upcomingTab" class="btn btn-primary btn-sm">Upcoming</button>
+        <button id="pastTab" class="btn btn-ghost btn-sm">Past</button>
+        <button id="myEventsTab" class="btn btn-ghost btn-sm">My Events</button>
+      </div>
+
+      <div id="eventList"></div>
+    </div>
+  </div>
+
+  <div id="modalContainer"></div>
+  <div id="toastContainer"></div>
+
+  <script type="module">
+    import { initPage, showToast } from '../assets/js/app.js';
+
+    let app = null;
+
+    async function loadEvents(filter = 'upcoming') {
+      const container = document.getElementById('eventList');
+      container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Loading events...</div>';
+
+      let events = [];
+      if (filter === 'upcoming') events = await app.events.getUpcoming();
+      else if (filter === 'past') events = await app.events.getPast();
+      else events = await app.events.getMyEvents();
+
+      if (!events || events.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📅</div>
+            <h3 style="color:var(--text-secondary);margin-bottom:8px;">No ${filter} events</h3>
+            <p style="color:var(--text-muted);font-size:14px;">${filter === 'upcoming' ? 'No upcoming events. Create one!' : 'No events yet.'}</p>
+            ${filter === 'upcoming' ? '<button id="emptyCreateBtn" class="btn btn-primary" style="margin-top:12px;">Create Event</button>' : ''}
+          </div>
+        `;
+        document.getElementById('emptyCreateBtn')?.addEventListener('click', openCreateModal);
+        return;
+      }
+
+      container.innerHTML = '';
+      events.forEach(e => {
+        container.appendChild(app.events.renderCard(e));
+      });
+
+      container.querySelectorAll('.rsvp-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const eventId = btn.dataset.eventId;
+          try {
+            const rsvped = await app.events.rsvp(eventId);
+            showToast(rsvped ? 'RSVP confirmed!' : 'Already attending', 'success');
+            loadEvents(filter);
+          } catch (e) {
+            showToast(e.message, 'error');
+          }
+        });
+      });
+    }
+
+    function openCreateModal() {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `
+        <div class="modal">
+          <div class="modal-header">
+            <h2 style="font-size:18px;font-weight:600;">Create Event</h2>
+            <button id="closeModal" class="btn btn-ghost btn-icon" style="font-size:20px;">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <input type="text" class="input" id="eventTitle" placeholder="Event title" required>
+              <textarea class="textarea" id="eventDescription" placeholder="Description" style="min-height:80px;"></textarea>
+              <label style="font-size:13px;font-weight:600;color:var(--text-secondary);">Date & Time</label>
+              <input type="datetime-local" class="input" id="eventDate">
+              <div style="display:flex;gap:10px;">
+                <input type="text" class="input" id="eventLocation" placeholder="Location (or leave blank for online)" style="flex:1;">
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer;white-space:nowrap;">
+                  <input type="checkbox" id="isOnline" style="accent-color:var(--accent);"> Online
+                </label>
+              </div>
+              <input type="text" class="input" id="meetingLink" placeholder="Meeting link (if online)" style="display:none;">
+              <div style="display:flex;gap:10px;align-items:center;">
+                <input type="number" class="input" id="maxAttendees" placeholder="Max attendees (0 = unlimited)" min="0" style="flex:1;">
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer;white-space:nowrap;">
+                  <input type="checkbox" id="isPremiumEvent" style="accent-color:var(--accent);"> Premium
+                </label>
+              </div>
+              <input type="number" class="input" id="eventPrice" placeholder="Price (credits)" min="0" step="0.5" style="display:none;">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelModal">Cancel</button>
+            <button class="btn btn-primary" id="submitEvent">Create Event</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      document.getElementById('closeModal').onclick = () => overlay.remove();
+      document.getElementById('cancelModal').onclick = () => overlay.remove();
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+      document.getElementById('isOnline').addEventListener('change', function() {
+        document.getElementById('meetingLink').style.display = this.checked ? 'block' : 'none';
+      });
+
+      document.getElementById('isPremiumEvent').addEventListener('change', function() {
+        document.getElementById('eventPrice').style.display = this.checked ? 'block' : 'none';
+      });
+
+      document.getElementById('submitEvent').addEventListener('click', async () => {
+        const title = document.getElementById('eventTitle').value.trim();
+        const dateStr = document.getElementById('eventDate').value;
+
+        if (!title) { showToast('Enter an event title', 'error'); return; }
+        if (!dateStr) { showToast('Select a date and time', 'error'); return; }
+
+        const selectedDate = new Date(dateStr);
+        if (selectedDate.getTime() < Date.now()) { showToast('Event date must be in the future', 'error'); return; }
+
+        const data = {
+          title,
+          description: document.getElementById('eventDescription').value.trim(),
+          date: selectedDate.toISOString(),
+          location: document.getElementById('eventLocation').value.trim(),
+          isOnline: document.getElementById('isOnline').checked,
+          meetingLink: document.getElementById('meetingLink').value.trim(),
+          isPremium: document.getElementById('isPremiumEvent').checked,
+          price: parseFloat(document.getElementById('eventPrice').value) || 0,
+          maxAttendees: parseInt(document.getElementById('maxAttendees').value) || 0,
+        };
+
+        try {
+          await app.events.create(data);
+          overlay.remove();
+          showToast('Event created!', 'success');
+          loadEvents('upcoming');
+        } catch (e) {
+          showToast(e.message, 'error');
+        }
+      });
+    }
+
+    app = await initPage(true);
+    if (app) {
+      await loadEvents('upcoming');
+
+      document.getElementById('upcomingTab').addEventListener('click', () => {
+        document.querySelectorAll('[id$=Tab]').forEach(t => t.className = 'btn btn-ghost btn-sm');
+        document.getElementById('upcomingTab').className = 'btn btn-primary btn-sm';
+        loadEvents('upcoming');
+      });
+
+      document.getElementById('pastTab').addEventListener('click', () => {
+        document.querySelectorAll('[id$=Tab]').forEach(t => t.className = 'btn btn-ghost btn-sm');
+        document.getElementById('pastTab').className = 'btn btn-primary btn-sm';
+        loadEvents('past');
+      });
+
+      document.getElementById('myEventsTab').addEventListener('click', () => {
+        document.querySelectorAll('[id$=Tab]').forEach(t => t.className = 'btn btn-ghost btn-sm');
+        document.getElementById('myEventsTab').className = 'btn btn-primary btn-sm';
+        loadEvents('my');
+      });
+
+      document.getElementById('createEventBtn').addEventListener('click', openCreateModal);
+    }
+  </script>
+</body>
+</html>

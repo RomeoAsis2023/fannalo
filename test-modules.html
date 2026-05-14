@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fannalo Module Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .module-card { padding: 20px; border-radius: 8px; margin: 10px; }
+        .success { background: #d1fae5; color: #065f46; }
+        .error { background: #fee2e2; color: #991b1b; }
+        .loading { background: #dbeafe; color: #1e40af; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center">Fannalo Module Test</h1>
+        
+        <div id="moduleResults" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Module test results will appear here -->
+        </div>
+        
+        <div class="mt-8 text-center">
+            <button id="runTests" class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600">
+                Run All Tests
+            </button>
+        </div>
+    </div>
+
+    <!-- Load preload.js -->
+    <script src="assets/js/core/preload.js"></script>
+    
+    <script>
+        const modules = [
+            'FannaloDB',
+            'FannaloP2P', 
+            'FannaloAuth',
+            'FannaloWallet',
+            'FannaloTorrent',
+            'FannaloSuperPeer',
+            'FannaloChat',
+            'FannaloVideo',
+            'FannaloLive',
+            'FannaloFeed',
+            'FannaloProfile',
+            'FannaloNotifications',
+            'FannaloEarnings',
+            'FannaloEvents',
+            'FannaloAnalytics',
+            'FannaloStories',
+            'FannaloAdmin'
+        ];
+        
+        function createModuleCard(moduleName, status = 'loading', message = '') {
+            const card = document.createElement('div');
+            card.className = `module-card ${status}`;
+            card.innerHTML = `
+                <h3 class="font-semibold mb-2">${moduleName}</h3>
+                <p class="text-sm">${message || 'Loading...'}</p>
+            `;
+            return card;
+        }
+        
+        async function runTests() {
+            const container = document.getElementById('moduleResults');
+            container.innerHTML = '';
+            
+            // Test each module
+            for (const moduleName of modules) {
+                const card = createModuleCard(moduleName, 'loading');
+                container.appendChild(card);
+                
+                try {
+                    // Wait for preload to complete
+                    if (window.__preloadedDone) {
+                        await window.__preloadedDone;
+                    }
+                    
+                    // Check if module exists
+                    if (window[moduleName]) {
+                        card.className = 'module-card success';
+                        card.innerHTML = `
+                            <h3 class="font-semibold mb-2">${moduleName}</h3>
+                            <p class="text-sm">✓ Loaded successfully</p>
+                        `;
+                    } else {
+                        throw new Error('Module not found');
+                    }
+                } catch (error) {
+                    card.className = 'module-card error';
+                    card.innerHTML = `
+                        <h3 class="font-semibold mb-2">${moduleName}</h3>
+                        <p class="text-sm">✗ Failed to load: ${error.message}</p>
+                    `;
+                }
+            }
+        }
+        
+        // Run tests when button is clicked
+        document.getElementById('runTests').addEventListener('click', runTests);
+        
+        // Auto-run tests after 2 seconds
+        setTimeout(runTests, 2000);
+    </script>
+</body>
+</html>

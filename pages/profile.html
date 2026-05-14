@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile — Fannalo</title>
+  <meta name="description" content="View and manage your Fannalo creator profile and subscriber tiers.">
+  <meta property="og:title" content="Profile — Fannalo">
+  <meta property="og:description" content="View and manage your Fannalo creator profile, posts, and subscriber tiers.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://faney.app/pages/profile.html">
+  <meta property="og:image" content="https://faney.app/assets/img/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://faney.app/pages/profile.html">
+  <meta name="theme-color" content="#f9f9f9">
+  <link rel="icon" type="image/png" href="../assets/img/icon.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body>
+  <div class="bg-noise"></div>
+
+  <div class="main-content" id="app">
+    <div class="container" style="max-width:900px;">
+      <div id="profileContainer">
+        <div style="text-align:center;padding:40px;">
+          <div class="skeleton" style="width:100%;height:260px;border-radius:var(--radius-xl);"></div>
+          <div class="skeleton" style="width:60%;height:24px;margin:20px auto 12px;border-radius:var(--radius-sm);"></div>
+          <div class="skeleton" style="width:40%;height:16px;margin:0 auto;border-radius:var(--radius-sm);"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer"></div>
+
+  <script src="../assets/js/core/preload.js"></script>
+  <script type="module">
+    import { initPage, showToast } from '../assets/js/app.js';
+
+    async function loadProfile(app) {
+      const container = document.getElementById('profileContainer');
+      const params = new URLSearchParams(window.location.search);
+      const targetId = params.get('id') || app.auth.currentUser.id;
+      const isOwner = targetId === app.auth.currentUser.id;
+
+      try {
+        const profileData = await app.profile.loadProfile(targetId);
+        if (!profileData) {
+          container.innerHTML = '<div class="empty-state"><p style="color:var(--text-secondary);">User not found</p></div>';
+          return;
+        }
+
+        const header = app.profile.renderProfileHeader(profileData, isOwner);
+        const grid = app.profile.renderPostGrid(profileData.posts);
+
+        container.innerHTML = '';
+        container.appendChild(header);
+        container.appendChild(grid);
+
+        document.querySelector('.follow-btn')?.addEventListener('click', async () => {
+          const btn = document.querySelector('.follow-btn');
+          const following = await app.profile.toggleFollow(targetId);
+          btn.textContent = following ? 'Following' : 'Follow';
+          btn.className = `btn ${following ? 'btn-secondary' : 'btn-ghost'} follow-btn`;
+
+          if (following) {
+            showToast(`Following ${profileData.user.displayName}`, 'success');
+          }
+        });
+
+        document.querySelector('.subscribe-btn')?.addEventListener('click', async () => {
+          const btn = document.querySelector('.subscribe-btn');
+          try {
+            await app.wallet.purchaseSubscription(app.auth.currentUser.id, targetId, profileData.user.subscriptionPrice || 5);
+            btn.textContent = '✓ Subscribed';
+            btn.className = 'btn btn-secondary subscribe-btn';
+            showToast(`Subscribed to ${profileData.user.displayName}!`, 'success');
+          } catch (e) {
+            showToast(e.message || 'Subscription failed', 'error');
+          }
+        });
+
+        if (!isOwner) {
+          const title = document.querySelector('title');
+          title.textContent = `${profileData.user.displayName} — Fannalo`;
+        }
+
+      } catch (e) {
+        container.innerHTML = `<div class="empty-state"><p style="color:var(--danger);">Failed to load profile: ${e.message}</p></div>`;
+      }
+    }
+
+    const app = await initPage(true);
+    if (app) {
+      await loadProfile(app);
+    }
+  </script>
+</body>
+</html>

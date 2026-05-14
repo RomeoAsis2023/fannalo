@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notifications — Fannalo</title>
+  <meta name="description" content="Stay updated with your latest Fannalo notifications.">
+  <meta property="og:title" content="Notifications — Fannalo">
+  <meta property="og:description" content="Stay updated with your latest Fannalo notifications for likes, follows, and subscriptions.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://faney.app/pages/notifications.html">
+  <meta property="og:image" content="https://faney.app/assets/img/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://faney.app/pages/notifications.html">
+  <meta name="theme-color" content="#f9f9f9">
+  <link rel="icon" type="image/png" href="../assets/img/icon.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body>
+  <div class="bg-noise"></div>
+
+  <div class="main-content" id="app">
+    <div class="container" style="max-width:680px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <h1 style="font-size:22px;font-weight:700;">Notifications</h1>
+        <button id="markAllReadBtn" class="btn btn-ghost btn-sm">Mark all read</button>
+      </div>
+
+      <div id="notificationList">
+        <div style="text-align:center;padding:40px;color:var(--text-muted);">
+          <div class="skeleton" style="width:100%;height:60px;margin-bottom:12px;border-radius:var(--radius-md);"></div>
+          <div class="skeleton" style="width:100%;height:60px;margin-bottom:12px;border-radius:var(--radius-md);"></div>
+          <div class="skeleton" style="width:100%;height:60px;border-radius:var(--radius-md);"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer"></div>
+
+  <script src="../assets/js/core/preload.js"></script>
+  <script type="module">
+    import { initPage, showToast } from '../assets/js/app.js';
+
+    async function loadNotifications(app) {
+      const container = document.getElementById('notificationList');
+      const notifs = await app.notifications.load(app.auth.currentUser.id);
+
+      const rendered = app.notifications.render(notifs);
+      container.innerHTML = '';
+      container.appendChild(rendered);
+    }
+
+    const app = await initPage(true);
+    if (app) {
+      await loadNotifications(app);
+
+      document.getElementById('markAllReadBtn').addEventListener('click', async () => {
+        await app.notifications.markAllRead(app.auth.currentUser.id);
+        await loadNotifications(app);
+        showToast('All notifications marked as read', 'success');
+      });
+    }
+  </script>
+</body>
+</html>

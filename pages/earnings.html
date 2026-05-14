@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Earnings — Fannalo</title>
+  <meta name="description" content="Track your Fannalo creator earnings and payment history.">
+  <meta property="og:title" content="Earnings — Fannalo">
+  <meta property="og:description" content="Track your Fannalo creator earnings, subscription revenue, and payment history.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://faney.app/pages/earnings.html">
+  <meta property="og:image" content="https://faney.app/assets/img/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://faney.app/pages/earnings.html">
+  <meta name="theme-color" content="#f9f9f9">
+  <link rel="icon" type="image/png" href="../assets/img/icon.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <script src="../assets/js/core/preload.js"></script>
+</head>
+<body>
+  <div class="bg-noise"></div>
+
+  <div class="main-content" id="app">
+    <div class="container" style="max-width:800px;">
+      <h1 style="font-size:22px;font-weight:700;margin-bottom:24px;">Earnings Dashboard</h1>
+
+      <div id="statsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:24px;"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+        <div class="card" style="padding:20px;">
+          <h3 style="font-size:14px;font-weight:600;margin-bottom:12px;">Monthly Earnings</h3>
+          <div id="monthlyChart"></div>
+        </div>
+        <div class="card" style="padding:20px;">
+          <h3 style="font-size:14px;font-weight:600;margin-bottom:12px;">Engagement</h3>
+          <div id="engagementStats"></div>
+        </div>
+      </div>
+
+      <div class="card" style="overflow:hidden;">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <h2 style="font-size:15px;font-weight:600;">Recent Earnings</h2>
+          <a href="withdraw.html" class="btn btn-primary btn-sm">Withdraw</a>
+        </div>
+        <div id="earningsList" style="padding:0;">
+          <div style="text-align:center;padding:20px;color:var(--text-muted);">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer"></div>
+
+  <script type="module">
+    import { initPage, showToast } from '../assets/js/app.js';
+
+    async function loadEarnings(app) {
+      const data = await app.earnings.getDashboard(app.auth.currentUser.id);
+
+      const statsGrid = document.getElementById('statsGrid');
+      statsGrid.innerHTML = '';
+      const cards = [
+        app.earnings.renderStatCard('Balance', app.earnings._formatCredits(data.balance), '💰'),
+        app.earnings.renderStatCard('Total Earned', app.earnings._formatCredits(data.totalEarnings), '📈'),
+        app.earnings.renderStatCard('Subscribers', data.subscriberCount, '👥'),
+        app.earnings.renderStatCard('Posts', data.postCount, '📝'),
+      ];
+      cards.forEach(c => statsGrid.appendChild(c));
+
+      const chart = document.getElementById('monthlyChart');
+      if (data.monthlyEarnings && data.monthlyEarnings.length > 0) {
+        const max = Math.max(...data.monthlyEarnings.map(m => m.amount), 1);
+        chart.innerHTML = data.monthlyEarnings.map(m => {
+          const pct = (m.amount / max) * 100;
+          return `
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <div style="width:50px;font-size:11px;color:var(--text-muted);">${m.month}</div>
+              <div style="flex:1;height:18px;background:var(--bg-secondary);border-radius:4px;overflow:hidden;">
+                <div style="height:100%;width:${pct}%;background:var(--gradient-1);border-radius:4px;transition:width 0.6s ease;"></div>
+              </div>
+              <div style="width:50px;font-size:11px;color:var(--text-secondary);text-align:right;">${app.earnings._formatCredits(m.amount)}</div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        chart.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">No earnings data yet</div>';
+      }
+
+      const eng = document.getElementById('engagementStats');
+      eng.innerHTML = `
+        <div class="stat-card" style="margin-bottom:10px;">
+          <div class="stat-value" style="font-size:18px;">${data.postEngagement.likes}</div>
+          <div class="stat-label">Total Likes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="font-size:18px;">${data.postEngagement.comments}</div>
+          <div class="stat-label">Total Comments</div>
+        </div>
+      `;
+
+      const list = document.getElementById('earningsList');
+      if (data.recentTransactions.length === 0) {
+        list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);">No earnings yet</div>';
+      } else {
+        list.innerHTML = data.recentTransactions.map(tx => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);">
+            <div>
+              <div style="font-size:13px;font-weight:500;">${tx.description || 'Earnings'}</div>
+              <div style="font-size:11px;color:var(--text-muted);">${new Date(tx.createdAt).toLocaleDateString()}</div>
+            </div>
+            <div style="font-size:15px;font-weight:700;color:var(--success);">+${app.earnings._formatCredits(tx.amount)}</div>
+          </div>
+        `).join('');
+      }
+    }
+
+    const app = await initPage(true);
+    if (app) await loadEarnings(app);
+  </script>
+</body>
+</html>

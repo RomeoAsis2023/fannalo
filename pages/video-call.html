@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Call — Fannalo</title>
+  <meta name="description" content="Start a P2P video call with fans and creators on Fannalo.">
+  <meta property="og:title" content="Video Call — Fannalo">
+  <meta property="og:description" content="Start a direct P2P video call with fans and creators on Fannalo.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://faney.app/pages/video-call.html">
+  <meta property="og:image" content="https://faney.app/assets/img/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://faney.app/pages/video-call.html">
+  <meta name="theme-color" content="#f9f9f9">
+  <link rel="icon" type="image/png" href="../assets/img/icon.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <script src="../assets/js/core/preload.js"></script>
+</head>
+<body>
+  <div class="bg-noise"></div>
+
+  <div class="main-content" id="app" style="padding:0;margin-left:260px;">
+    <div style="display:flex;height:calc(100vh - 64px);flex-direction:column;background:#000;">
+      <div style="flex:1;display:flex;position:relative;background:#0a0a0f;">
+        <video id="remoteVideo" autoplay playsinline style="flex:1;object-fit:contain;background:#0a0a0f;"></video>
+        <video id="localVideo" autoplay playsinline muted style="position:absolute;bottom:100px;right:20px;width:200px;border-radius:12px;border:2px solid var(--border);background:#1a1a2e;object-fit:cover;transform:scaleX(-1);"></video>
+
+        <div id="callOverlay" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+          <div id="callStatus" style="font-size:18px;color:var(--text-secondary);margin-bottom:16px;">
+            <div style="font-size:48px;margin-bottom:12px;">📹</div>
+            <div>Start a video call with a friend</div>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:center;">
+            <input type="text" id="peerIdInput" class="input" placeholder="Enter peer ID to call..." style="max-width:280px;">
+            <button id="startCallBtn" class="btn btn-primary">Call</button>
+          </div>
+        </div>
+
+        <div id="incomingCall" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg-card);padding:32px;border-radius:var(--radius-xl);text-align:center;border:1px solid var(--border);min-width:320px;">
+          <div style="font-size:48px;margin-bottom:12px;">📞</div>
+          <h3 style="margin-bottom:4px;">Incoming Call</h3>
+          <p id="callerName" style="color:var(--text-secondary);margin-bottom:20px;">Someone is calling you</p>
+          <div style="display:flex;gap:12px;justify-content:center;">
+            <button id="acceptCallBtn" class="btn btn-primary">Accept</button>
+            <button id="rejectCallBtn" class="btn btn-danger">Decline</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:center;gap:16px;padding:16px;background:var(--bg-secondary);border-top:1px solid var(--border);">
+        <button id="toggleMicBtn" class="btn btn-secondary btn-icon" title="Toggle Mic">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><line x1="4" y1="10" x2="4" y2="12a8 8 0 0 0 16 0v-2"/></svg>
+        </button>
+        <button id="toggleCamBtn" class="btn btn-secondary btn-icon" title="Toggle Camera">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        </button>
+        <button id="screenShareBtn" class="btn btn-secondary btn-icon" title="Share Screen">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </button>
+        <button id="endCallBtn" class="btn btn-danger btn-icon" title="End Call" style="display:none;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initPage, showToast } from '../assets/js/app.js';
+
+    let app = null;
+    let incomingOffer = null;
+
+    async function startCall() {
+      const peerId = document.getElementById('peerIdInput').value.trim();
+      if (!peerId) { showToast('Enter a peer ID', 'error'); return; }
+
+      try {
+        await app.video.startLocalVideo();
+        document.getElementById('localVideo').srcObject = app.video.localStream;
+        document.getElementById('callOverlay').style.display = 'none';
+        document.getElementById('endCallBtn').style.display = 'flex';
+
+        await app.video.call(peerId);
+
+        app.video.on('remote:stream', (stream) => {
+          document.getElementById('remoteVideo').srcObject = stream;
+        });
+
+        app.video.on('call:status', (status) => {
+          if (status.status === 'connected') {
+            showToast('Call connected!', 'success');
+          } else if (status.status === 'disconnected' || status.status === 'failed') {
+            showToast('Call ended', 'info');
+            resetCallUI();
+          }
+        });
+      } catch (e) {
+        showToast(e.message || 'Call failed', 'error');
+      }
+    }
+
+    async function acceptCall() {
+      if (!incomingOffer) return;
+      document.getElementById('incomingCall').style.display = 'none';
+
+      try {
+        await app.video.startLocalVideo();
+        document.getElementById('localVideo').srcObject = app.video.localStream;
+        document.getElementById('endCallBtn').style.display = 'flex';
+
+        await app.video.answer(incomingOffer.sdp, incomingOffer.from);
+
+        app.video.on('remote:stream', (stream) => {
+          document.getElementById('remoteVideo').srcObject = stream;
+        });
+      } catch (e) {
+        showToast(e.message || 'Failed to answer', 'error');
+      }
+    }
+
+    function resetCallUI() {
+      document.getElementById('callOverlay').style.display = 'block';
+      document.getElementById('endCallBtn').style.display = 'none';
+      document.getElementById('remoteVideo').srcObject = null;
+      document.getElementById('localVideo').srcObject = null;
+      incomingOffer = null;
+    }
+
+    app = await initPage(true);
+    if (app) {
+      document.getElementById('startCallBtn').addEventListener('click', startCall);
+      document.getElementById('endCallBtn').addEventListener('click', () => {
+        app.video.endCall();
+        resetCallUI();
+      });
+
+      document.getElementById('toggleMicBtn').addEventListener('click', async () => {
+        const enabled = await app.video.toggleMic();
+        showToast(enabled ? 'Mic on' : 'Mic off', 'info');
+      });
+
+      document.getElementById('toggleCamBtn').addEventListener('click', async () => {
+        const enabled = await app.video.toggleCamera();
+        showToast(enabled ? 'Camera on' : 'Camera off', 'info');
+      });
+
+      document.getElementById('screenShareBtn').addEventListener('click', async () => {
+        await app.video.shareScreen();
+        showToast('Screen sharing', 'info');
+      });
+
+      document.getElementById('acceptCallBtn').addEventListener('click', acceptCall);
+      document.getElementById('rejectCallBtn').addEventListener('click', () => {
+        document.getElementById('incomingCall').style.display = 'none';
+        incomingOffer = null;
+        showToast('Call declined', 'info');
+      });
+
+      app.video.on('call:incoming', (data) => {
+        incomingOffer = data;
+        document.getElementById('incomingCall').style.display = 'block';
+      });
+    }
+  </script>
+</body>
+</html>

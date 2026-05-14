@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat — Fannalo</title>
+  <meta name="description" content="Send direct messages to your fans and creators on Fannalo.">
+  <meta property="og:title" content="Chat — Fannalo">
+  <meta property="og:description" content="Send direct P2P messages to your fans and creators on Fannalo.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://faney.app/pages/chat.html">
+  <meta property="og:image" content="https://faney.app/assets/img/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://faney.app/pages/chat.html">
+  <meta name="theme-color" content="#f9f9f9">
+  <link rel="icon" type="image/png" href="../assets/img/icon.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <script src="../assets/js/core/preload.js"></script>
+</head>
+<body>
+  <div class="bg-noise"></div>
+
+  <div class="main-content" id="app" style="padding:0;margin-left:260px;">
+    <div style="display:flex;height:calc(100vh - 64px);">
+      <div style="width:340px;flex-shrink:0;border-right:1px solid var(--border);background:var(--bg-secondary);overflow-y:auto;">
+        <div style="padding:16px;border-bottom:1px solid var(--border);">
+          <h1 style="font-size:18px;font-weight:700;">Chat</h1>
+          <div style="position:relative;margin-top:10px;">
+            <input type="text" id="chatSearch" class="input" placeholder="Search conversations..." style="padding:8px 14px;font-size:13px;">
+          </div>
+        </div>
+        <div id="conversationList"></div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;background:var(--bg-primary);">
+        <div id="chatWelcome" style="flex:1;display:flex;align-items:center;justify-content:center;">
+          <div class="empty-state">
+            <div class="empty-state-icon">💬</div>
+            <h3 style="color:var(--text-secondary);margin-bottom:8px;">Select a conversation</h3>
+            <p style="color:var(--text-muted);font-size:14px;">Choose a chat or start a new one from a profile.</p>
+          </div>
+        </div>
+        <div id="chatArea" style="display:none;flex:1;flex-direction:column;">
+          <div id="chatHeader" style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--bg-secondary);">
+            <div class="avatar avatar-sm" id="chatPartnerAvatar" style="background:var(--gradient-1);font-size:12px;">?</div>
+            <div>
+              <div id="chatPartnerName" style="font-weight:600;font-size:14px;"></div>
+              <div id="chatPartnerStatus" style="font-size:11px;color:var(--text-muted);"></div>
+            </div>
+          </div>
+          <div id="messageList" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;"></div>
+          <div style="padding:12px 20px;border-top:1px solid var(--border);background:var(--bg-secondary);">
+            <div style="display:flex;gap:10px;align-items:center;">
+              <input type="text" id="messageInput" class="input" placeholder="Type a message..." style="flex:1;padding:10px 16px;">
+              <button id="sendMsgBtn" class="btn btn-primary btn-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer"></div>
+
+  <script type="module">
+    import { initPage, showToast } from '../assets/js/app.js';
+
+    let currentConversation = null;
+    let app = null;
+
+    async function loadConversations() {
+      const list = document.getElementById('conversationList');
+      const convos = await app.chat.getConversations();
+
+      if (!convos || convos.length === 0) {
+        list.innerHTML = `
+          <div style="text-align:center;padding:40px;color:var(--text-muted);font-size:14px;">
+            No conversations yet.<br>Go to a profile and start chatting!
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = '';
+      convos.forEach(c => {
+        const el = app.chat.renderConversation(c);
+        el.addEventListener('click', () => openConversation(c));
+        list.appendChild(el);
+      });
+    }
+
+    async function openConversation(conv) {
+      currentConversation = conv;
+      const otherId = conv.participants.find(p => p !== app.auth.currentUser.id);
+      document.getElementById('chatWelcome').style.display = 'none';
+      document.getElementById('chatArea').style.display = 'flex';
+      document.getElementById('chatPartnerName').textContent = conv.other?.displayName || 'Unknown';
+      document.getElementById('chatPartnerAvatar').textContent = (conv.other?.displayName || '?')[0];
+      document.getElementById('chatPartnerAvatar').style.background = app.chat._getColor(conv.other?.username || '');
+      document.getElementById('chatPartnerStatus').textContent = conv.other?.isOnline ? '🟢 Online' : '⚪ Offline';
+
+      await app.chat.markRead(conv.id);
+      loadMessages(conv.id);
+
+      document.querySelectorAll('#conversationList > div').forEach(el => el.style.borderLeft = '');
+      const activeEl = Array.from(document.querySelectorAll('#conversationList > div')).find(el =>
+        el.textContent.includes(conv.other?.displayName)
+      );
+      if (activeEl) activeEl.style.borderLeft = '3px solid var(--accent)';
+    }
+
+    async function loadMessages(conversationId) {
+      const list = document.getElementById('messageList');
+      const msgs = await app.chat.getMessages(conversationId);
+      list.innerHTML = '';
+      if (msgs.length === 0) {
+        list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">No messages yet. Say hello!</div>';
+        return;
+      }
+      msgs.forEach(m => {
+        const isOwn = m.senderId === app.auth.currentUser.id;
+        list.appendChild(app.chat.renderMessage(m, isOwn));
+      });
+      list.scrollTop = list.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const text = input.value.trim();
+      if (!text || !currentConversation) return;
+      input.value = '';
+      await app.chat.sendMessage(currentConversation.id, text);
+      loadMessages(currentConversation.id);
+    }
+
+    app = await initPage(true);
+    if (app) {
+      await loadConversations();
+
+      const params = new URLSearchParams(window.location.search);
+      const userId = params.get('user');
+      if (userId && userId !== app.auth.currentUser.id) {
+        const conv = await app.chat.getOrCreateConversation(userId);
+        const other = await app.db.getUser(userId);
+        openConversation({
+          ...conv,
+          other: other || { displayName: 'User', username: 'user' }
+        });
+      }
+
+      document.getElementById('sendMsgBtn').addEventListener('click', sendMessage);
+      document.getElementById('messageInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendMessage();
+      });
+
+      app.chat.on('message', (data) => {
+        if (currentConversation && data.conversationId === currentConversation.id) {
+          loadMessages(currentConversation.id);
+        }
+        loadConversations();
+      });
+
+      document.getElementById('chatSearch').addEventListener('input', function() {
+        const q = this.value.toLowerCase();
+        document.querySelectorAll('#conversationList > div').forEach(el => {
+          el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Withdraw — Fannalo</title>
+  <meta name="description" content="Withdraw your Fannalo earnings to your connected accounts.">
+  <meta property="og:title" content="Withdraw — Fannalo">
+  <meta property="og:description" content="Withdraw your Fannalo creator earnings to your connected accounts.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://faney.app/pages/withdraw.html">
+  <meta property="og:image" content="https://faney.app/assets/img/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://faney.app/pages/withdraw.html">
+  <meta name="theme-color" content="#f9f9f9">
+  <link rel="icon" type="image/png" href="../assets/img/icon.png">
+  <link rel="apple-touch-icon" href="../assets/img/icon.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <script src="../assets/js/core/preload.js"></script>
+</head>
+<body>
+  <div class="bg-noise"></div>
+
+  <div class="main-content" id="app">
+    <div class="container" style="max-width:560px;">
+      <h1 style="font-size:22px;font-weight:700;margin-bottom:24px;">Withdraw Funds</h1>
+
+      <div class="card" style="padding:24px;margin-bottom:20px;">
+        <div style="text-align:center;margin-bottom:24px;">
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">Available Balance</div>
+          <div id="balanceDisplay" style="font-size:40px;font-weight:800;font-family:var(--font-display);">—</div>
+        </div>
+
+        <form id="withdrawForm" style="display:flex;flex-direction:column;gap:16px;">
+          <div>
+            <label style="font-size:13px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Amount (credits)</label>
+            <input type="number" class="input" id="withdrawAmount" placeholder="Minimum 10 credits" min="10" step="0.5" required>
+          </div>
+
+          <div>
+            <label style="font-size:13px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Withdrawal Method</label>
+            <select id="withdrawMethod" class="input">
+              <option value="paypal">PayPal</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size:13px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">PayPal Email</label>
+            <input type="email" class="input" id="paypalEmail" placeholder="your@paypal.email">
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-lg" style="width:100%;justify-content:center;">
+            Withdraw
+          </button>
+        </form>
+
+        <p style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:16px;">
+          Minimum withdrawal: 10 credits · Processing time: 24-48 hours
+        </p>
+      </div>
+
+      <div class="card" style="overflow:hidden;">
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border);">
+          <h2 style="font-size:15px;font-weight:600;">Withdrawal History</h2>
+        </div>
+        <div id="withdrawalHistory" style="padding:0;">
+          <div style="text-align:center;padding:20px;color:var(--text-muted);">No withdrawals yet</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer"></div>
+
+  <script type="module">
+    import { initPage, showToast } from '../assets/js/app.js';
+
+    async function loadWithdrawPage(app) {
+      const userId = app.auth.currentUser.id;
+      const user = await app.db.getUser(userId);
+      document.getElementById('balanceDisplay').textContent = `${app.wallet.formatCredits(user?.credits || 0)} credits`;
+      if (user?.paypalEmail) document.getElementById('paypalEmail').value = user.paypalEmail;
+
+      const history = await app.earnings.getWithdrawalHistory(userId);
+      const container = document.getElementById('withdrawalHistory');
+      if (history.length > 0) {
+        container.innerHTML = history.map(w => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);">
+            <div>
+              <div style="font-size:13px;font-weight:500;">${w.method} withdrawal</div>
+              <div style="font-size:11px;color:var(--text-muted);">${new Date(w.createdAt).toLocaleDateString()}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:14px;font-weight:700;color:var(--danger);">-${app.wallet.formatCredits(w.amount)}</div>
+              <div style="font-size:11px;color:${w.status === 'completed' ? 'var(--success)' : w.status === 'pending' ? 'var(--warning)' : 'var(--danger)'};">${w.status}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    const app = await initPage(true);
+    if (app) {
+      await loadWithdrawPage(app);
+
+      document.getElementById('withdrawForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const amount = parseFloat(document.getElementById('withdrawAmount').value);
+        const method = document.getElementById('withdrawMethod').value;
+        const paypalEmail = document.getElementById('paypalEmail').value.trim();
+
+        if (amount < 10) { showToast('Minimum withdrawal is 10 credits', 'error'); return; }
+        if (!paypalEmail) { showToast('Enter your PayPal email', 'error'); return; }
+
+        await app.db.updateUser(app.auth.currentUser.id, { paypalEmail });
+
+        try {
+          await app.earnings.requestWithdrawal(app.auth.currentUser.id, amount, method);
+          showToast(`Withdrawal of ${app.wallet.formatCredits(amount)} requested!`, 'success');
+          loadWithdrawPage(app);
+          document.getElementById('withdrawAmount').value = '';
+        } catch (e) {
+          showToast(e.message, 'error');
+        }
+      });
+    }
+  </script>
+</body>
+</html>

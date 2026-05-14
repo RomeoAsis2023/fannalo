@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f9f9f9"/>
+      <stop offset="100%" style="stop-color:#f0f0f5"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef476f"/>
+      <stop offset="100%" style="stop-color:#26547c"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="200" cy="100" r="300" fill="rgba(239,71,111,0.05)"/>
+  <circle cx="1000" cy="500" r="400" fill="rgba(38,84,124,0.05)"/>
+  <text x="100" y="260" font-family="'Plus Jakarta Sans',sans-serif" font-size="72" font-weight="800" fill="#33333f">Fannalo</text>
+  <text x="100" y="340" font-family="'Inter',sans-serif" font-size="32" font-weight="500" fill="#5c5c6e">The Decentralized Creator Network</text>
+  <rect x="100" y="380" width="200" height="4" rx="2" fill="url(#accent)"/>
+  <text x="100" y="450" font-family="'Inter',sans-serif" font-size="18" fill="#9999aa">No servers. No middlemen. Just pure P2P connection.</text>
+</svg>
