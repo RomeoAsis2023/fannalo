@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fannalo-v1';
+const CACHE_NAME = 'fannalo-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
