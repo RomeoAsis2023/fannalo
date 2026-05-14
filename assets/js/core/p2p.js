@@ -17,11 +17,12 @@
         const mod = await import('https://cdn.jsdelivr.net/npm/webconnect/dist/esm/webconnect.js');
         this.connect = mod.default || mod;
         this.connect = mod.default || mod;
-        this.connection = this.connect({
-          appName,
-          channelName: channel,
-          peerId: this.peerId
-        });
+          this.connection = this.connect({
+            appName,
+            channelName: channel,
+            peerId: this.peerId,
+            relays: []
+          });
 
         this.connection.onConnect((attr) => {
           this.connected = true;
